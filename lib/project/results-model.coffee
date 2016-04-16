@@ -83,6 +83,7 @@ class ResultsModel
     @matchCount = 0
     @regex = null
     @results = {}
+    @watchSubscriptions = {}
     @paths = []
     @active = false
     @searchErrors = null
@@ -217,7 +218,7 @@ class ResultsModel
       @removeResult(filePath)
 
   addResult: (filePath, result) ->
-    watch filePath, (eventType) =>
+    @watchSubscriptions[filePath] = watch filePath, (eventType) =>
       @removeResult(filePath) if eventType is 'delete'
     filePathInsertedIndex = null
     if @results[filePath]
@@ -233,6 +234,10 @@ class ResultsModel
     @emitter.emit 'did-add-result', {filePath, result, filePathInsertedIndex}
 
   removeResult: (filePath) ->
+    if @watchSubscriptions[filePath]?
+      @watchSubscriptions[filePath].close()
+      delete @watchSubscriptions[filePath]
+
     if @results[filePath]
       @pathCount--
       @matchCount -= @results[filePath].matches.length
